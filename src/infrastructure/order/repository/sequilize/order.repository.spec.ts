@@ -116,13 +116,21 @@ describe("Order repository test", () => {
     const orderRepository = new OrderRepository();
     await orderRepository.create(order);
 
+    const originalOrderModel = await OrderModel.findOne({ where: { id: order.id }, include: ["items"] });
+
+    expect(originalOrderModel.items.length).toStrictEqual(1);
+
     order.changeItems([orderItem, newOrderItem]);
 
     await orderRepository.update(order);
 
-    const orderModel = await OrderModel.findOne({ where: { id: order.id }, include: ["items"] });
+    const updatedOrderModel = await OrderModel.findOne({ where: { id: order.id }, include: ["items"] });
 
-    expect(orderModel.toJSON()).toStrictEqual({
+    expect(updatedOrderModel.toJSON()).not.toStrictEqual(originalOrderModel.toJSON());
+
+    expect(updatedOrderModel.items.length).toStrictEqual(2);
+
+    expect(updatedOrderModel.toJSON()).toStrictEqual({
       customer_id: customer.id,
       id: order.id,
       total: order.total(),
