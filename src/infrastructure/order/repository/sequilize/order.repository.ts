@@ -1,5 +1,5 @@
 import Order from "../../../../domain/checkout/entity/order";
-import OrderItem from "../../../../domain/checkout/entity/order";
+import OrderItem from "../../../../domain/checkout/entity/order_item";
 import OrderItemModel from "./order-item.model";
 import OrderModel from "./order.model";
 
@@ -47,5 +47,56 @@ export default class OrderRepository {
         { where: { id: entity.id }, transaction }
       )
     });
+  }
+
+  async find(id: string): Promise<Order> {
+    let orderModel;
+    try {
+      orderModel = await OrderModel.findOne({
+        where: { id },
+        include: ["items"],
+        rejectOnEmpty: true,
+      });
+    } catch (error) {
+      throw new Error("Order not found");
+    }
+
+    const items = orderModel.items.map((item) => {
+      const orderItem = new OrderItem(
+        item.id,
+        item.name,
+        item.price,
+        item.product_id,
+        item.quantity
+      );
+
+      return orderItem;
+    })
+
+    const order = new Order(orderModel.id, orderModel.customer_id, items);
+    return order
+  }
+
+  async findAll(): Promise<Order[]> {
+    const ordersModel = await OrderModel.findAll({ include: ["items"] });
+
+    const orders = ordersModel.map((orderModel) => {
+      const items = orderModel.items.map((item) => {
+        const orderItem = new OrderItem(
+          item.id,
+          item.name,
+          item.price,
+          item.product_id,
+          item.quantity
+        );
+
+        return orderItem;
+      })
+
+      const order = new Order(orderModel.id, orderModel.customer_id, items);
+      return order
+    });
+
+    return orders;
   }
 }
